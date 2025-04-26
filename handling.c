@@ -7,7 +7,7 @@
 #include "parse.h"
 
 
-int handle_image(int client_fd, int bytes_read, int buffer, struct HttpRequest *req) {
+int handle_image(int client_fd, struct HttpRequest *req) {
     char *get_path = req->path;
     char *path = get_path + 7;
 
@@ -15,6 +15,9 @@ int handle_image(int client_fd, int bytes_read, int buffer, struct HttpRequest *
     snprintf(filepath, sizeof(filepath), "./static%s", path);
 
     FILE* file_pointer = fopen(filepath, "rb");
+
+    char buffer[BUFFER_SIZE];
+    int bytes_read;
 
     if (file_pointer == NULL) {
         send_error_response(client_fd, 404);
@@ -48,8 +51,6 @@ int handle_image(int client_fd, int bytes_read, int buffer, struct HttpRequest *
 
 
     // Read file content and send it with HTTP headers
-
-
     while ((bytes_read = fread(buffer, 1, BUFFER_SIZE, file_pointer)) > 0) {
         send(client_fd, buffer, bytes_read, 0);
     }
@@ -58,4 +59,16 @@ int handle_image(int client_fd, int bytes_read, int buffer, struct HttpRequest *
     fclose(file_pointer);
     return 0;
 
+}
+
+const char* get_extension(const char *filepath) {
+    int path_length = strlen(filepath);
+    const char *extension = NULL;
+    for (int index = path_length - 1; index >= 0; index--) {
+        if (filepath[index] == '.') {
+            extension = &filepath[index];
+            break;
+        }
+    }
+    return extension;
 }
