@@ -8,5 +8,6 @@
 void parse_arguments(int argc, char* argv[], int *port, int *verbose);
 int server_setup(int port, int verbose);
 void start_server(int server_fd, int verbose);
+int send_error_response(int client_fd, int status_code);
 
 #endif

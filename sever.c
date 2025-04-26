@@ -71,10 +71,14 @@ void start_server(int server_fd, int verbose) {
 
 int validate_request(int client_fd, struct HttpRequest *req) {
     
-    if (req->method == "GET") {
-        // Do something here not sure yet
-    } else if (req->method != "GET") {
+    if (strcmp(req->method, "GET") != 0) {
         send_error_response(client_fd, 405);
+        return -1;
+    }
+
+    if (strcmp(req->protocol, "HTTP/1.1") != 0) {
+        send_error_response(client_fd, 400);
+        return -1;
     }
 
     if (strncmp(req->path, "/static", 7) == 0) {
@@ -88,11 +92,7 @@ int validate_request(int client_fd, struct HttpRequest *req) {
         send_error_response(client_fd, 404);
     }
 
-    if (req->protocol == "HTTP/1.1") {
-        // do something
-    } else {
-        send_error_response(client_fd, 400);
-    }
+    return 0;
 }
 
 int send_error_response(int client_fd, int status_code) {
@@ -109,6 +109,9 @@ int send_error_response(int client_fd, int status_code) {
     } else if (status_code == 405) {
         status_text = "405, Method Not Allowed";
         body_text = "405, Method Not Allowed";
+    } else if (status_code == 500) {
+        status_text = "500, Internal Server Error";
+        body_text = "500, Internal Server Error";
     }
 
     int body_length = strlen(body_text);
