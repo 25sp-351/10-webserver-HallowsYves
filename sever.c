@@ -4,31 +4,123 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include "server.h"
+#include "parse.h"
 
+int server_setup(int port, int verbose) {
+    // Declare essential variables.
+    int server_fd;
+    struct sockaddr_in server_addr;
 
-void parse_arguments(int argc, char* argv[], int *port, int *verbose) {
-    for (int index = 0; index < argc; index++) {
-        // Check for "-p" and "-v"
-        if (strcmp(argv[index], "-p") == 0 && index + 1 < argc) {
-            
-            // Convert String to int
-            char *end_pointer;
-            long port_long = strtol(argv[index + 1], &end_pointer, 10);
-
-            if (*end_pointer != '\0' || port_long <= 0 || port_long > 65535) {
-                fprintf(stderr, "Invalid port number.");
-                exit(EXIT_FAILURE);
-            }
-            port = (int)port_long;
-            index++;
-        } else if (strcmp(argv[index], "-v") == 0) {
-            verbose = 1;
-        } else {
-            fprintf(stderr, "Unknown option: %s\n", argv[index]);
-            fprintf(stderr, "Usage: %s [-p port] [-v]\n", argv[0]);
-            exit(EXIT_FAILURE);
-        }
+    // Create Socket
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+        perror("socket \n");
+        exit(EXIT_FAILURE);
     }
 
+    // Setup Server Addresses
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(port);
+    server_addr.sin_addr.s_addr = INADDR_ANY;
 
+    // Binding
+    if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr) == -1)) {
+        perror("bind");
+        close(server_fd);
+        exit(EXIT_FAILURE);
+    }
+
+    // Start Listening
+    if (listen(server_fd, 1) == -1) {
+        perror("listen");
+        close(server_fd);
+        exit(EXIT_FAILURE);
+    }
+    return server_fd;
+}
+
+void start_server(int server_fd, int verbose) {
+    struct sockaddr_in client_addr;
+    socklen_t addr_len;
+    int client_fd;
+    char buffer[BUFFER_SIZE];
+
+    while (1) {
+        addr_len = sizeof(client_addr);
+        client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &addr_len);
+        if (client_fd == -1) {
+            perror("accept");
+            continue;
+        }
+
+        printf("Client connected! \n");
+        close(client_fd);
+    }
+
+    // deal with the GET 
+    int bytes_received = recv(client_fd, buffer, BUFFER_SIZE, 0);
+
+    if (bytes_received > 0) {
+        struct HttpRequest request;
+        parse_request_line(buffer, &request);
+
+        // Validate 
+    }
+
+}
+
+int validate_request(int client_fd, struct HttpRequest *req) {
+    
+    if (req->method == "GET") {
+        // Do something here not sure yet
+    } else if (req->method != "GET") {
+        send_error_response(client_fd, 405);
+    }
+
+    if (strncmp(req->path, "/static", 7) == 0) {
+        // Get image
+
+    } else if(strncmp(req->path, "/calc", 5) == 0) {
+        // Do calculation
+
+        // Get first num, would be after / calc, then get second
+    } else {
+        send_error_response(client_fd, 404);
+    }
+
+    if (req->protocol == "HTTP/1.1") {
+        // do something
+    } else {
+        send_error_response(client_fd, 400);
+    }
+}
+
+int send_error_response(int client_fd, int status_code) {
+    char response[BUFFER_SIZE];
+    const char *status_text;
+    const char *body_text;
+
+    if (status_code == 400) {
+        status_text = "400 Bad Request";
+        body_text = "400 Bad Request";
+    } else if (status_code == 404) {
+        status_text = "404 Not Found";
+        body_text = "404 Not Found";
+    } else if (status_code == 405) {
+        status_text = "405, Method Not Allowed";
+        body_text = "405, Method Not Allowed";
+    }
+
+    int body_length = strlen(body_text);
+
+    snprintf(response, sizeof(response),
+        "HTTP/1.1 %s\r\n"
+        "Content-Type: text/plain\r\n"
+        "Content-Length: %d\r\n"
+        "\r\n"
+        "%s",
+        status_text, body_length, body_text);
+
+    // send response
+    send(client_fd, response, strlen(response), 0);
 }
