@@ -3,6 +3,7 @@
 #include "parse.h"
 
 int handle_image(int client_fd, struct HttpRequest *req);
+int handle_calc(int client_fd, struct HttpRequest *req);
 #define DEFAULT_CONTENT_TYPE "application/octet-stream";
 const char *get_extension(const char *filepath);
 

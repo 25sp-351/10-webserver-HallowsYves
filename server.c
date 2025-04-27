@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 #include "server.h"
 #include "parse.h"
+#include "handling.h"
 
 int server_setup(int port, int verbose) {
     // Declare essential variables.
@@ -53,17 +54,23 @@ void start_server(int server_fd, int verbose) {
         }
 
         printf("Client connected! \n");
+
+        int bytes_received = recv(client_fd, buffer, BUFFER_SIZE, 0);
+        if (bytes_received > 0) {
+            struct HttpRequest req;
+            parse_request_line(buffer, bytes_received, &req);
+
+            if (validate_request(client_fd, &req) == 0) {
+                if (strncmp(req.path, "/static", 7) == 0) {
+                    handle_image(client_fd, &req);
+                } else if (strncmp(client_fd, "/calc", 5) == 0) {
+                    handle_calc(client_fd, &req);
+                } else {
+                    send_error_response(client_fd, 404);
+                }
+            }
+        }
         close(client_fd);
-    }
-
-    // deal with the GET 
-    int bytes_received = recv(client_fd, buffer, BUFFER_SIZE, 0);
-
-    if (bytes_received > 0) {
-        struct HttpRequest request;
-        parse_request_line(buffer, bytes_received, &request);
-
-        // Validate 
     }
 
 }
@@ -80,13 +87,8 @@ int validate_request(int client_fd, struct HttpRequest *req) {
         return -1;
     }
 
-    if (strncmp(req->path, "/static", 7) == 0) {
-        // Get image
-
-    } else if(strncmp(req->path, "/calc", 5) == 0) {
-        // Do calculation
-
-        // Get first num, would be after / calc, then get second
+    if (strncmp(req->path, "/static", 7) == 0 || strncmp(req->path, "/calc", 5) == 0) {
+        printf("Valid. \n");
     } else {
         send_error_response(client_fd, 404);
     }
