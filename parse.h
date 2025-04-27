@@ -12,6 +12,6 @@ struct HttpRequest
 };
 
 
-void parse_request_line(char *request_buffer, struct HttpRequest *req);
+void parse_request_line(char *request_buffer, int bytes_received, struct HttpRequest *req);
 
 #endif

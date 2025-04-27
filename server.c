@@ -24,8 +24,7 @@ int server_setup(int port, int verbose) {
     server_addr.sin_addr.s_addr = INADDR_ANY;
 
     // Binding
-    if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr) == -1)) {
-        perror("bind");
+    if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {        perror("bind");
         close(server_fd);
         exit(EXIT_FAILURE);
     }
@@ -62,7 +61,7 @@ void start_server(int server_fd, int verbose) {
 
     if (bytes_received > 0) {
         struct HttpRequest request;
-        parse_request_line(buffer, &request);
+        parse_request_line(buffer, bytes_received, &request);
 
         // Validate 
     }

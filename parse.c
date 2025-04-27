@@ -8,7 +8,7 @@
 
 
 void parse_arguments(int argc, char* argv[], int *port, int *verbose) {
-    for (int index = 0; index < argc; index++) {
+    for (int index = 1; index < argc; index++) {
         // Check for "-p" and "-v"
         if (strcmp(argv[index], "-p") == 0 && index + 1 < argc) {
             
@@ -20,10 +20,10 @@ void parse_arguments(int argc, char* argv[], int *port, int *verbose) {
                 fprintf(stderr, "Invalid port number.");
                 exit(EXIT_FAILURE);
             }
-            port = (int)port_long;
+            *port = (int)port_long;
             index++;
         } else if (strcmp(argv[index], "-v") == 0) {
-            verbose = 1;
+            *verbose = 1;
         } else {
             fprintf(stderr, "Unknown option: %s\n", argv[index]);
             fprintf(stderr, "Usage: %s [-p port] [-v]\n", argv[0]);
