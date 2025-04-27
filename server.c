@@ -63,7 +63,7 @@ void start_server(int server_fd, int verbose) {
             if (validate_request(client_fd, &req) == 0) {
                 if (strncmp(req.path, "/static", 7) == 0) {
                     handle_image(client_fd, &req);
-                } else if (strncmp(client_fd, "/calc", 5) == 0) {
+                } else if (strncmp(req.path, "/calc", 5) == 0) {
                     handle_calc(client_fd, &req);
                 } else {
                     send_error_response(client_fd, 404);
