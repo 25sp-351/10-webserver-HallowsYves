@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <pthread.h>
 #include "server.h"
 #include "parse.h"
 #include "handling.h"
@@ -119,11 +120,12 @@ int handle_calc(int client_fd, struct HttpRequest *req)
     char temp_buffer[BUFFER_SIZE];
     strcpy(temp_buffer, req->path + 6);
 
-    char* operation = strtok(temp_buffer, "/");
-    char* num_one_string = strtok(NULL, "/");
-    char* num_two_string = strtok(NULL, "/");
+    char *operation = strtok(temp_buffer, "/");
+    char *num_one_string = strtok(NULL, "/");
+    char *num_two_string = strtok(NULL, "/");
 
-    if (!operation || !num_one_string || !num_two_string) {
+    if (!operation || !num_one_string || !num_two_string)
+    {
         send_error_response(client_fd, 400);
         return -1;
     }
@@ -136,23 +138,31 @@ int handle_calc(int client_fd, struct HttpRequest *req)
 
     int result;
 
-    
-    if (*endpointer_one != '\0' || *endpointer_two != '\0') {
+    if (*endpointer_one != '\0' || *endpointer_two != '\0')
+    {
         send_error_response(client_fd, 400);
         return -1;
     }
 
-    if (strcmp(operation, "add") == 0) {
-        result =  (int)(num_one + num_two);
-    } else if (strcmp(operation, "mul") == 0) {
+    if (strcmp(operation, "add") == 0)
+    {
+        result = (int)(num_one + num_two);
+    }
+    else if (strcmp(operation, "mul") == 0)
+    {
         result = (int)(num_one * num_two);
-    } else if (strcmp(operation, "div") == 0) {
-        if (num_two == 0) {
+    }
+    else if (strcmp(operation, "div") == 0)
+    {
+        if (num_two == 0)
+        {
             send_error_response(client_fd, 400);
             return -1;
         }
         result = (int)(num_one / num_two);
-    } else {
+    }
+    else
+    {
         send_error_response(client_fd, 400);
         return -1;
     }
@@ -163,13 +173,46 @@ int handle_calc(int client_fd, struct HttpRequest *req)
     // Build full HTTP response
     char response[BUFFER_SIZE];
     int response_length = snprintf(response, sizeof(response),
-        "HTTP/1.1 200 OK\r\n"
-        "Content-Type: text/plain\r\n"
-        "Content-Length: %d\r\n"
-        "\r\n"
-        "%s",
-        result_length, result_body);
+                                   "HTTP/1.1 200 OK\r\n"
+                                   "Content-Type: text/plain\r\n"
+                                   "Content-Length: %d\r\n"
+                                   "\r\n"
+                                   "%s",
+                                   result_length, result_body);
 
     send(client_fd, response, response_length, 0);
     return 0;
+}
+
+void *handle_client(void *arg)
+{
+    int client_fd = *((int *) arg);
+    free(arg);
+
+    char buffer[BUFFER_SIZE];
+    int bytes_received = recv(client_fd, buffer, BUFFER_SIZE, 0);
+    if (bytes_received <= 0) 
+    {
+        close(client_fd);
+        pthread_exit(NULL);
+    }
+
+    struct HttpRequest req;
+    parse_request_line(buffer, bytes_received, &req);
+
+    if (validate_request(client_fd, &req) == 0) 
+    {
+        if (strncmp(req.path, "/static", 7) == 0) 
+        {
+            handle_image(client_fd, &req);
+        } else if (strncmp(req.path, "/calc", 5) == 0) 
+        {
+            handle_calc(client_fd, &req);
+        } else 
+        {
+            send_error_response(client_fd, 404);
+        }
+    }
+    close(client_fd);
+    pthread_exit(NULL);
 }

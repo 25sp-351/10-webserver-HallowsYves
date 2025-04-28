@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <pthread.h>
 #include "server.h"
 #include "parse.h"
 #include "handling.h"
@@ -41,36 +42,34 @@ int server_setup(int port, int verbose) {
 
 void start_server(int server_fd, int verbose) {
     struct sockaddr_in client_addr;
-    socklen_t addr_len;
+    socklen_t addr_len = sizeof(client_addr);
     int client_fd;
+
     char buffer[BUFFER_SIZE];
 
     while (1) {
-        addr_len = sizeof(client_addr);
         client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &addr_len);
-        if (client_fd == -1) {
+        if (client_fd == -1) 
+        {
             perror("accept");
             continue;
         }
 
         printf("Client connected! \n");
 
-        int bytes_received = recv(client_fd, buffer, BUFFER_SIZE, 0);
-        if (bytes_received > 0) {
-            struct HttpRequest req;
-            parse_request_line(buffer, bytes_received, &req);
+        pthread_t thread_id;
 
-            if (validate_request(client_fd, &req) == 0) {
-                if (strncmp(req.path, "/static", 7) == 0) {
-                    handle_image(client_fd, &req);
-                } else if (strncmp(req.path, "/calc", 5) == 0) {
-                    handle_calc(client_fd, &req);
-                } else {
-                    send_error_response(client_fd, 404);
-                }
-            }
+        int *pclient = malloc(sizeof(int));
+        *pclient = client_fd;
+
+        if (pthread_create(&thread_id, NULL, handle_client, pclient) != 0) 
+        {
+            perror("pthread_create");
+            close(client_fd);
+            free(pclient);
+            continue;
         }
-        close(client_fd);
+        pthread_detach(thread_id);
     }
 
 }
