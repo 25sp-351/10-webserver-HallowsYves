@@ -189,6 +189,42 @@ int handle_calc(int client_fd, struct HttpRequest *req)
     return 0;
 }
 
+int handle_sleep(int client_fd, struct HttpRequest *req) 
+{
+    char temp_buffer[BUFFER_SIZE];
+    strcpy(temp_buffer, req->path + 7);
+
+    char *seconds_string = strtok(temp_buffer, "/");
+    if (!seconds_string) {
+        send_error_response(client_fd, 400);
+        return -1;
+    }
+
+    char *end_pointer;
+    long seconds = strtol(seconds_string, &end_pointer, 10);
+    if (*end_pointer != '\0' || seconds < 0) {
+        send_error_response(client_fd, 400);
+        return -1;
+    }
+
+    printf("Sleeping for %ld seconds...\n", seconds);
+    sleep((unsigned int)seconds);
+
+    // 200 OK
+    const char *body = "Slept successfully!\n";
+    char response[BUFFER_SIZE];
+    int response_length = snprintf(response, sizeof(response),
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: text/plain\r\n"
+        "Content-Length: %zu\r\n"
+        "\r\n"
+        "%s",
+        strlen(body), body);
+
+    send(client_fd, response, response_length, 0);
+    return 0;
+}
+
 void *handle_client(void *arg)
 {
     int client_fd = *((int *) arg);
@@ -214,7 +250,11 @@ void *handle_client(void *arg)
         } else if (strncmp(req.path, "/calc", 5) == 0) 
         {
             handle_calc(client_fd, &req);
-        } else 
+        } else if (strncmp(req.path, "/sleep", 6) == 0) 
+        {
+            handle_sleep(client_fd, &req);
+        } 
+        else 
         {
             send_error_response(client_fd, 404);
         }

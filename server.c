@@ -8,7 +8,7 @@
 #include "parse.h"
 #include "handling.h"
 
-int server_setup(int port, int verbose) {
+int server_setup(int port) {
     // Declare essential variables.
     int server_fd;
     struct sockaddr_in server_addr;
@@ -40,12 +40,11 @@ int server_setup(int port, int verbose) {
     return server_fd;
 }
 
-void start_server(int server_fd, int verbose) {
+void start_server(int server_fd) {
     struct sockaddr_in client_addr;
     socklen_t addr_len = sizeof(client_addr);
     int client_fd;
 
-    char buffer[BUFFER_SIZE];
 
     while (1) {
         client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &addr_len);
@@ -95,7 +94,7 @@ int validate_request(int client_fd, struct HttpRequest *req) {
     return 0;
 }
 
-int send_error_response(int client_fd, int status_code) {
+void send_error_response(int client_fd, int status_code) {
     char response[BUFFER_SIZE];
     const char *status_text;
     const char *body_text;
