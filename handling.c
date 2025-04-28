@@ -14,11 +14,10 @@ int handle_image(int client_fd, struct HttpRequest *req)
     
     snprintf(filepath, sizeof(filepath), "./static%s", req->path + 7);
 
-    printf("Opening file: %s\n", filepath); // * DEBUG
 
     FILE *file_pointer = fopen(filepath, "rb");
     if(!file_pointer) {
-        printf("File not found, Sending 404\n"); // *DEBUG
+        printf("File not found, Sending 404\n"); 
         send_error_response(client_fd, 404);
         return -1;
     }
