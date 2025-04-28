@@ -10,13 +10,18 @@
 
 int handle_image(int client_fd, struct HttpRequest *req)
 {
-    char *get_path = req->path;
-    char *path = get_path + 7;
-
     char filepath[BUFFER_SIZE];
-    snprintf(filepath, sizeof(filepath), "./static%s", path);
+    
+    snprintf(filepath, sizeof(filepath), "./static%s", req->path + 7);
+
+    printf("Opening file: %s\n", filepath); // * DEBUG
 
     FILE *file_pointer = fopen(filepath, "rb");
+    if(!file_pointer) {
+        printf("File not found, Sending 404\n"); // *DEBUG
+        send_error_response(client_fd, 404);
+        return -1;
+    }
 
     char buffer[BUFFER_SIZE];
     int bytes_read;
@@ -199,6 +204,7 @@ void *handle_client(void *arg)
 
     struct HttpRequest req;
     parse_request_line(buffer, bytes_received, &req);
+    printf("Request path: %s\n", req.path);
 
     if (validate_request(client_fd, &req) == 0) 
     {
